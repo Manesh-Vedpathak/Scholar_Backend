@@ -31,7 +31,7 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtFilter;
 
-    @Value("${app.cors.allowed-origins:http://localhost:3000}")
+    @Value("${app.cors.allowed-origins:http://localhost:3000,https://mv-scholarconnect.vercel.app}")
     private String allowedOrigins;
 
     @Bean
@@ -53,9 +53,11 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
+                        // Allow browser CORS preflight requests
                         .requestMatchers(HttpMethod.OPTIONS, "/**")
                         .permitAll()
 
+                        // Public endpoints
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/scholarships/active",
@@ -63,9 +65,11 @@ public class SecurityConfig {
                         )
                         .permitAll()
 
+                        // Admin endpoints
                         .requestMatchers("/api/admin/**")
                         .hasRole("ADMIN")
 
+                        // Student endpoints
                         .requestMatchers(
                                 "/api/student/**",
                                 "/api/applications/**",
@@ -116,7 +120,13 @@ public class SecurityConfig {
                 "Origin"
         ));
 
+        configuration.setExposedHeaders(List.of(
+                "Authorization"
+        ));
+
         configuration.setAllowCredentials(true);
+
+        configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source =
                 new UrlBasedCorsConfigurationSource();

@@ -6,23 +6,28 @@ FROM maven:3.9-eclipse-temurin-21 AS build
 
 WORKDIR /app
 
+# Configure alternative Maven Central mirror
+RUN mkdir -p /root/.m2 && \
+    printf '%s\n' \
+    '<settings xmlns="http://maven.apache.org/SETTINGS/1.2.0">' \
+    '  <mirrors>' \
+    '    <mirror>' \
+    '      <id>google-maven-central</id>' \
+    '      <name>Google Maven Central Mirror</name>' \
+    '      <url>https://maven-central.storage-download.googleapis.com/maven2/</url>' \
+    '      <mirrorOf>central</mirrorOf>' \
+    '    </mirror>' \
+    '  </mirrors>' \
+    '</settings>' \
+    > /root/.m2/settings.xml
+
 COPY pom.xml .
 
 COPY src ./src
 
-# Retry Maven build if Maven Central temporarily
-# responds with HTTP 429 or another network error.
-
-RUN for attempt in 1 2 3 4 5; do \
-      echo "Maven build attempt: $attempt"; \
-      if mvn -B -ntp clean package -DskipTests; then \
-        exit 0; \
-      fi; \
-      echo "Build failed. Waiting before retry..."; \
-      sleep $((attempt * 30)); \
-    done; \
-    echo "Maven build failed after 5 attempts"; \
-    exit 1
+# Build Spring Boot application
+RUN mvn -s /root/.m2/settings.xml \
+    -B -ntp clean package -DskipTests
 
 
 # ==========================================
